@@ -40,11 +40,9 @@ def calc_distribution_array(start, k):
     end = start + k
     curr = start
 
-    f = lambda f : f - int(f)
-
     rv = []
 
-    complement = 1 - f(start)
+    complement = 1 - (start - int(start))
 
     if complement > 0:
         rv.append(complement)
@@ -69,9 +67,15 @@ print(hm)
 print()
 
 for i in range(1, 10):
-    i = 1.6 - i / 10
+    h1 = hist_shift(h, i)
+    h1m = hist_mean(h1)
+    print(i, h1m, h1m-hm)
+
+print()
+
+for i in range(1, 10):
+    i = 4 - (i / 5)
     h1 = hist_stretch(h, i)
-    print(sum(v for v in h1))
     h1m = hist_mean(h1)
     print(i, h1m, h1m/hm)
 
