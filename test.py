@@ -17,6 +17,7 @@ def hist_stretch(h, scal):
     new_h_idx = 0
 
     for i, val in enumerate(h):
+        new_h_idx = i * scal
         dist = calc_distribution_array(new_h_idx, scal)
 
         j = int(new_h_idx)
@@ -24,7 +25,6 @@ def hist_stretch(h, scal):
         for k, weight in enumerate(dist):
             new_h[j+k] = h[i] * weight
 
-        new_h_idx += scal
 
     return new_h
 
