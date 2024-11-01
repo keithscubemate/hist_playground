@@ -4,111 +4,140 @@ from random import random
 def bytes_to_arr(arr, so):
     return [int.from_bytes((j:=i*so, a[j:j+so])[1]) for i in range(len(arr)//so)]
 
-def hist_print(h, shrink = 1):
-    for i in h:
-        exes = ["x" for _ in range(int(i)//shrink)]
-        print("|", "".join(exes)) 
+class Histogram:
+    def __init__(self, bin_size):
+        self.bin_size = bin_size
+        self.hist = []
 
-def hist_mean(h,bin_size = 1):
-    return sum(i * v  * bin_size for i, v in enumerate(h)) / sum([v for v in h])
+    @classmethod
+    def from_measurements(cls, measurements, bin_size = 1):
+        hist = Histogram(bin_size)
 
-def hist_stretch(h, scal):
-    new_h = [0] * (int(len(h) * scal) + 1)
-    new_h_idx = 0
+        hist.hist = [0] * (int(max(measurements) / bin_size) + 1)
 
-    for i, val in enumerate(h):
-        new_h_idx = i * scal
-        dist = calc_distribution_array(new_h_idx, scal)
+        for v in measurements:
+            hist.hist[int(v / bin_size)] += 1
 
-        j = int(new_h_idx)
+        return hist
 
-        for k, weight in enumerate(dist):
-            new_h[j+k] = h[i] * weight
+    @classmethod
+    def from_array(cls, arr, bin_size = 1):
+        hist = Histogram(bin_size)
+        hist.hist = arr
 
+        return hist
 
-    return new_h
+    def mean(self):
+        h = self.hist
+        return sum(i * v  * self.bin_size for i, v in enumerate(h)) / sum([v for v in h])
 
-def hist_shift(h, b):
-    new_h = [0] * (len(h) + b)
+    def mutate(self, scale, offset):
+        self.stretch(scale)
+        self.shift(offset)
 
-    for i, val in enumerate(h):
-        new_h[i + b] = val
+    def stretch_into(self, scale):
+        new_h = [0] * (int(len(self.hist) * scale) + 1)
+        new_h_idx = 0
 
-    return new_h
+        for i, val in enumerate(self.hist):
+            new_h_idx = i * scale
+            dist = self.__calc_distribution_array(new_h_idx, scale)
 
-def calc_distribution_array(start, k):
-    end = start + k
-    curr = start
+            j = int(new_h_idx)
 
-    rv = []
+            for k, weight in enumerate(dist):
+                new_h[j+k] = self.hist[i] * weight
 
-    complement = 1 - (start - int(start))
+        return Histogram.from_array(new_h, self.bin_size)
 
-    if complement > 0:
-        rv.append(complement)
-        curr += complement
+    def stretch(self, scale):
+        self.hist = self.stretch_into(scale).hist
 
-    while curr < end:
-        val = 1 if end - curr > 1 else end - curr
-        rv.append(val)
-        curr += val
+    def shift_into(self, offset):
+        new_h = [0] * (len(self.hist) + offset)
 
-    return [v / k for v in rv]
+        for i, val in enumerate(self.hist):
+            new_h[i + offset] = val
 
-s = "AAAAAAAAAAAMAAAAYgAAAKEAAACYAAAAhQAAAHoAAACPAAAAeAAAAGcAAABrAAAAcwAAAGoAAABLAAAAXwAAAEQAAABPAAAAXgAAAEsAAABRAAAARQAAAEgAAABPAAAAUQAAAEEAAABIAAAARwAAAEMAAABHAAAANgAAADUAAAA="
+        return Histogram.from_array(new_h, self.bin_size)
 
-a = base64.b64decode(s)
+    def shift(self, offset):
+        self.hist = self.shift_new(offset).hist
 
-h = bytes_to_arr(a, 4) 
+    def print(self, shrink = 1):
+        for i in self.hist:
+            exes = ["x" for _ in range(int(i)//shrink)]
+            print("|", "".join(exes)) 
 
-hm = hist_mean(h)
+    def __calc_distribution_array(self, start, k):
+        end = start + k
+        curr = start
 
-print(hm)
-print()
+        rv = []
 
-for i in range(1, 10):
-    h1 = hist_shift(h, i)
-    h1m = hist_mean(h1)
-    print(i, h1m, h1m-hm)
+        complement = 1 - (start - int(start))
 
-print()
+        if complement > 0:
+            rv.append(complement)
+            curr += complement
 
-for i in range(1, 10):
-    i = 4 - (i / 5)
-    h1 = hist_stretch(h, i)
-    h1m = hist_mean(h1)
-    print(i, h1m, h1m/hm)
+        while curr < end:
+            val = 1 if end - curr > 1 else end - curr
+            rv.append(val)
+            curr += val
 
-print()
+        return [v / k for v in rv]
 
-m = []
+if __name__ == '__main__':
+    s = "AAAAAAAAAAAMAAAAYgAAAKEAAACYAAAAhQAAAHoAAACPAAAAeAAAAGcAAABrAAAAcwAAAGoAAABLAAAAXwAAAEQAAABPAAAAXgAAAEsAAABRAAAARQAAAEgAAABPAAAAUQAAAEEAAABIAAAARwAAAEMAAABHAAAANgAAADUAAAA="
 
-for i in range(100):
-    for j in range(int(1000 * random())):
-        m.append(i + (1 * random()))
+    a = base64.b64decode(s)
 
-print(sum(v for v in m) / len(m))
+    a_int = bytes_to_arr(a, 4) 
 
-h = [0] * (int(max(m)) + 1)
+    hist = Histogram.from_array(a_int)
 
-for v in m:
-    h[int(v)] += 1
+    hm = hist.mean()
 
-print(hist_mean(h))#,h)
+    print(hm)
+    print()
 
-scale = 0.5
-offset = 10
+    # Test scaling on a range
+    for i in range(1, 10):
+        h1 = hist.shift_into(i)
+        h1m = h1.mean()
+        print(i, h1m, h1m-hm)
 
-fs = hist_stretch(h, scale)
-fs = hist_shift(fs, offset)
-print(hist_mean(fs))#,fs)
+    print()
 
-h = [0] * (int(max(m)) + 1)
+    # Test stretching on a range
+    for i in range(1, 10):
+        i = 4 - (i / 5)
+        h1 = hist.stretch_into(i)
+        h1m = h1.mean()
+        print(i, h1m, h1m/hm)
 
-rs = [0] * len(fs)
-for v in m:
-    v = (scale * v) + offset
+    print()
 
-    rs[int(v)] += 10
+    # Check that the scaling and stretching is accurate to reality
+    m = []
+    for i in range(100):
+        for j in range(int(1000 * random())):
+            m.append(i + (1 * random()))
 
-print(hist_mean(rs))#, rs)
+    print(sum(v for v in m) / len(m), "<--- true mean")
+
+    hist = Histogram.from_measurements(m)
+
+    print(hist.mean(), "<--- original mean")
+
+    scale = 0.5
+    offset = 10
+
+    
+    rs = Histogram.from_measurements([(scale * v) + offset for v in m])
+    print(rs.mean(), "<--- true scaling mean")
+
+    fs = hist.stretch_into(scale).shift_into(offset)
+    print(fs.mean())
+
