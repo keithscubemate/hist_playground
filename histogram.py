@@ -2,10 +2,13 @@ import base64
 from random import random 
    
 def bytes_to_arr(arr, so):
-    return [int.from_bytes((j:=i*so, a[j:j+so])[1]) for i in range(len(arr)//so)]
+    return [int.from_bytes((j:=i*so, arr[j:j+so])[1]) for i in range(len(arr)//so)]
 
 class Histogram:
     def __init__(self, bin_size):
+        '''
+        Init a histogram with a given bin size
+        '''
         self.bin_size = bin_size
         self.hist = []
 
@@ -102,7 +105,7 @@ if __name__ == '__main__':
     print(hm)
     print()
 
-    # Test scaling on a range
+    # Test shifting on a range
     for i in range(1, 10):
         h1 = hist.shift_into(i)
         h1m = h1.mean()
@@ -110,9 +113,10 @@ if __name__ == '__main__':
 
     print()
 
+    prev = 0
+    prev2 = 0
     # Test stretching on a range
     for i in range(1, 10):
-        i = 4 - (i / 5)
         h1 = hist.stretch_into(i)
         h1m = h1.mean()
         print(i, h1m, h1m/hm)
