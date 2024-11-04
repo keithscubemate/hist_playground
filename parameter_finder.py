@@ -5,7 +5,7 @@ from pprint import pprint
 
 from histogram import Histogram, bytes_to_arr
 
-def finder(hist, desired, f):
+def single_finder(hist, desired, f):
     actual = f(hist)
 
     scale = (desired / actual)
@@ -33,7 +33,7 @@ def finder(hist, desired, f):
         if h is None or l is None:
             scale += (desired / new_actual) - 1
         else:
-            print(h, l)
+            # print(h, l)
             h = h[0]
             l = l[0]
 
@@ -45,25 +45,21 @@ def finder(hist, desired, f):
 
                 if desired - n_a > 0:
                     scale = (l + scale) / 2
-                    print("go low")
+                    # print("go low")
                 else:
                     scale = (h + scale) / 2
-                    print("go high")
+                    # print("go high")
 
-        print(scale,desired, new_actual)
-        print()
+        # print(scale,desired, new_actual)
+        # print()
 
-    print(i, scale, actual, new_actual)
+    # print(i, scale, actual, new_actual)
 
     # for g in guesses:
     #     print(g)
     # print()
 
     return scale
-
-def thing(hist, w = 1):
-    return sum(v * (( i * w ) + (w / 2)) for i, v in enumerate(hist.hist)) / sum(v for v in hist.hist)
-
 
 def make_test_hist_from_data():
     s = "AAAAAAAAAAAMAAAAYgAAAKEAAACYAAAAhQAAAHoAAACPAAAAeAAAAGcAAABrAAAAcwAAAGoAAABLAAAAXwAAAEQAAABPAAAAXgAAAEsAAABRAAAARQAAAEgAAABPAAAAUQAAAEEAAABIAAAARwAAAEMAAABHAAAANgAAADUAAAA="
@@ -83,29 +79,48 @@ def make_test_hist_random(n, max_val):
 
     return Histogram.from_measurements(m), m
 
+def test_single_parameter():
+    current_time_seconds = 0 # time.time()
+    seed(current_time_seconds)
 
-if __name__ == '__main__':
-
-    # current_time_seconds = time.time()
-    seed(0)
-
-    # hist, m = make_test_hist_random(100, 1_000)
     hist = make_test_hist_from_data()
+    desired = 59
 
-    # hist.print(100_000_000)
-    # print()
-
-    f = lambda h : thing(h, 1)
+    f = lambda h : weighted_mean_value(h, 1)
 
     print("initial:", f(hist))
     print()
 
+    scale = single_finder(hist, desired, f)
+
+    print("desired:", desired)
+    print("scaled: ", f(hist.stretch_into(scale)))
+
+def weighted_mean_value(hist, w = 1):
+    return sum(v * (( i * w ) + (w / 2)) for i, v in enumerate(hist.hist)) / sum(v for v in hist.hist)
+
+def percent_below_value(hist, val):
+    return \
+        sum(v for i, v in enumerate(hist.hist) if i * hist.bin_size < val) \
+        / \
+        sum(v for v in hist.hist)
+
+
+if __name__ == '__main__':
+
+    hist = make_test_hist_from_data()
+
+    f = lambda h : weighted_mean_value(h, 2)
+    g = lambda h : percent_below_value(h, 18)
+
+    print("initial f(h):", f(hist))
+    print("initial g(h):", g(hist))
+    print()
+
     desired = 59
 
-    scale = finder(hist, desired, f)
+    scale = single_finder(hist, desired, f)
 
     print("desired:", desired)
 
     print("scaled: ", f(hist.stretch_into(scale)))
-
-    # print("actual: ", f(Histogram.from_measurements([v * scale for v in m])))
