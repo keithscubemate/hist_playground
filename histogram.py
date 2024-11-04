@@ -57,15 +57,15 @@ class Histogram:
         self.hist = self.stretch_into(scale).hist
 
     def shift_into(self, offset):
-        new_h = [0] * (len(self.hist) + offset)
+        new_h = [0] * (len(self.hist) + int(offset) + 1)
 
         for i, val in enumerate(self.hist):
-            new_h[i + offset] = val
+            new_h[i + int(offset)] = val
 
         return Histogram.from_array(new_h, self.bin_size)
 
     def shift(self, offset):
-        self.hist = self.shift_new(offset).hist
+        self.hist = self.shift_into(offset).hist
 
     def print(self, shrink = 1):
         for i in self.hist:

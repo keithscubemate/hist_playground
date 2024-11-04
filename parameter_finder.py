@@ -2,10 +2,17 @@ import base64
 import time
 from random import random, seed
 from pprint import pprint
+from scipy import optimize
 
 from histogram import Histogram, bytes_to_arr
 
-def single_finder(hist, desired, f):
+def single_finder_shift(hist, desired, f):
+    actual = f(hist)
+    shift = int(desired - actual)
+
+    return shift
+
+def single_finder_stretch(hist, desired, f):
     actual = f(hist)
 
     scale = (desired / actual)
@@ -61,6 +68,35 @@ def single_finder(hist, desired, f):
 
     return scale
 
+def double_finder(hist, desired_f, f, desired_g, g):
+    def error_function(m, b):
+        m = float(m)
+        b = float(b)
+        trans = hist.stretch_into(m).shift_into(b)
+
+        error1 = f(trans) - desired_f
+        error2 = g(trans) - desired_g
+
+        return abs(error1) + abs(error2)
+
+        # Use optimization to minimize error_function
+    result = optimize.minimize(
+        lambda params: error_function(params[0], params[1]),
+        [1, 0],
+        tol=1
+    )
+
+    # Extract optimized a and b
+    if result.success:
+        optimized_m, optimized_b = result.x
+        return float(optimized_m), int(optimized_b)
+    else:
+        raise ValueError("Optimization failed to converge")
+
+    
+
+    return scale, offset
+
 def make_test_hist_from_data():
     s = "AAAAAAAAAAAMAAAAYgAAAKEAAACYAAAAhQAAAHoAAACPAAAAeAAAAGcAAABrAAAAcwAAAGoAAABLAAAAXwAAAEQAAABPAAAAXgAAAEsAAABRAAAARQAAAEgAAABPAAAAUQAAAEEAAABIAAAARwAAAEMAAABHAAAANgAAADUAAAA="
 
@@ -91,7 +127,7 @@ def test_single_parameter():
     print("initial:", f(hist))
     print()
 
-    scale = single_finder(hist, desired, f)
+    scale = single_finder_stretch(hist, desired, f)
 
     print("desired:", desired)
     print("scaled: ", f(hist.stretch_into(scale)))
@@ -117,10 +153,15 @@ if __name__ == '__main__':
     print("initial g(h):", g(hist))
     print()
 
-    desired = 59
+    desired_f = 59
+    desired_g = 0.45
 
-    scale = single_finder(hist, desired, f)
+    scale, offset = double_finder(hist, desired_f, f, desired_g, g)
 
-    print("desired:", desired)
+    print("desired f:", desired_f)
+    print("desired g:", desired_g)
 
-    print("scaled: ", f(hist.stretch_into(scale)))
+    fs = hist.stretch_into(scale).shift_into(offset)
+
+    print("modified f: ", f(fs))
+    print("modified g: ", g(fs))
