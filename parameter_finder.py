@@ -110,7 +110,7 @@ def double_finder(hist, desired_f, f, desired_g, g):
         if lost_data < 0: 
             lost_data = 0
 
-        return (2 * abs(error1)) + abs(error2) + (4 * lost_data)
+        return (2 * abs(error1)) + abs(error2) + (5 * lost_data)
 
     init_m=f(hist) / desired_f
     init_b=(g(hist) - desired_g) * init_m
@@ -121,7 +121,7 @@ def double_finder(hist, desired_f, f, desired_g, g):
         initial_b=init_b,
         step_size=5,
         search_width=10,
-        max_iters=200
+        max_iters=300
     )
 
 def custom_optimizer(
@@ -142,14 +142,29 @@ def custom_optimizer(
         # Calculate error with current m and b
         current_error = calculate_error(m, b)
 
-        print(best_m, best_b, best_error, step_size)
+        # print(best_m, best_b, best_error, step_size)
         
         # Check if current error is the best we've seen
         if current_error < best_error:
             best_error = current_error
             best_m, best_b = m, b
         else:
-            # If no improvement, stop adjusting (or try smaller step size)
+            # weight temp the same as energy
+            t_max = best_error
+            t = t_max * (1 - (iteration / max_iters))
+
+            energy = current_error - best_error
+
+            p = (energy + t) / (best_error + t_max)
+            r = random()
+
+            # print(">", p, r)
+            # print()
+
+            if p >= r:
+                best_error = current_error
+                best_m, best_b = m, b
+
             step_size *= 0.95
 
         # Try adjusting 'm' and 'b' in both positive and negative directions
@@ -246,7 +261,7 @@ if __name__ == '__main__':
 
     datum = {}
 
-    desired_f = 40
+    desired_f = 30
     desired_g = 0.14
 
     scale, offset = double_finder(hist, desired_f, f, desired_g, g)
