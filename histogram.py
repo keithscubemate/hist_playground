@@ -60,7 +60,12 @@ class Histogram:
         new_h = [0] * (len(self.hist) + int(offset) + 1)
 
         for i, val in enumerate(self.hist):
-            new_h[i + int(offset)] = val
+            i_0 = i + offset
+
+            dist = self.__calc_distribution_array(i_0, 1)
+
+            for j, weight in enumerate(dist):
+                new_h[i + int(offset) + j] += val * weight
 
         return Histogram.from_array(new_h, self.bin_size)
 
@@ -92,6 +97,18 @@ class Histogram:
         return [v / k for v in rv]
 
 if __name__ == '__main__':
+
+    hist = Histogram.from_array([ 10 * x for x in [0, 1, 1, 2, 3, 4, 2, 2, 1, 0]])
+
+    hist.print()
+
+    hist.shift(1.5)
+
+    print()
+    hist.print()
+
+    exit
+
     s = "AAAAAAAAAAAMAAAAYgAAAKEAAACYAAAAhQAAAHoAAACPAAAAeAAAAGcAAABrAAAAcwAAAGoAAABLAAAAXwAAAEQAAABPAAAAXgAAAEsAAABRAAAARQAAAEgAAABPAAAAUQAAAEEAAABIAAAARwAAAEMAAABHAAAANgAAADUAAAA="
 
     a = base64.b64decode(s)
@@ -107,6 +124,7 @@ if __name__ == '__main__':
 
     # Test shifting on a range
     for i in range(1, 10):
+        i = i + 0.5
         h1 = hist.shift_into(i)
         h1m = h1.mean()
         print(i, h1m, h1m-hm)

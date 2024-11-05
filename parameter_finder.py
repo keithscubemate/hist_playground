@@ -70,32 +70,63 @@ def single_finder_stretch(hist, desired, f):
 
 def double_finder(hist, desired_f, f, desired_g, g):
     def error_function(m, b):
-        m = float(m)
-        b = float(b)
         trans = hist.stretch_into(m).shift_into(b)
 
-        error1 = f(trans) - desired_f
-        error2 = g(trans) - desired_g
+        error1 = (f(trans) - desired_f) / desired_f
+        error2 = (g(trans) - desired_g) / desired_g
 
         return abs(error1) + abs(error2)
 
-        # Use optimization to minimize error_function
-    result = optimize.minimize(
-        lambda params: error_function(params[0], params[1]),
-        [1, 0],
-        tol=1
-    )
 
-    # Extract optimized a and b
-    if result.success:
-        optimized_m, optimized_b = result.x
-        return float(optimized_m), int(optimized_b)
-    else:
-        raise ValueError("Optimization failed to converge")
+    return custom_optimizer(error_function)
 
+def custom_optimizer(
+        calculate_error,
+        initial_a=1,
+        initial_b=0,
+        step_size=0.5,
+        max_iters=100
+    ):
+    # Initialize coefficients and other parameters
+    a, b = initial_a, initial_b
+    best_error = float('inf')
+    best_a, best_b = a, b
     
+    # Optimization loop
+    for iteration in range(max_iters):
+        # Calculate error with current a and b
+        current_error = calculate_error(a, b)
+        
+        # Check if current error is the best we've seen
+        if current_error < best_error:
+            best_error = current_error
+            best_a, best_b = a, b
+        else:
+            # If no improvement, stop adjusting (or try smaller step size)
+            step_size /= 2  # Reduce step size if error doesn't improve
 
-    return scale, offset
+        # Try adjusting 'a' and 'b' in both positive and negative directions
+        for delta_a in [-step_size, step_size]:
+            for delta_b in [-step_size, step_size]:
+                # Calculate new potential values for a and b
+                new_a, new_b = a + delta_a, b + delta_b
+                new_error = calculate_error(new_a, new_b)
+                
+                # Update a and b if new error is better
+                if new_error < current_error:
+                    a, b = new_a, new_b
+                    current_error = new_error
+
+        # Optional: Stop if error is below a certain threshold
+        if best_error < 1e-6:
+            break
+
+    print(step_size)
+    print(best_error)
+    print()
+    
+    return best_a, best_b
+    
 
 def make_test_hist_from_data():
     s = "AAAAAAAAAAAMAAAAYgAAAKEAAACYAAAAhQAAAHoAAACPAAAAeAAAAGcAAABrAAAAcwAAAGoAAABLAAAAXwAAAEQAAABPAAAAXgAAAEsAAABRAAAARQAAAEgAAABPAAAAUQAAAEEAAABIAAAARwAAAEMAAABHAAAANgAAADUAAAA="
@@ -146,20 +177,26 @@ if __name__ == '__main__':
 
     hist = make_test_hist_from_data()
 
-    f = lambda h : weighted_mean_value(h, 2)
-    g = lambda h : percent_below_value(h, 18)
+    f = lambda h : weighted_mean_value(h, 1)
+    g = lambda h : percent_below_value(h, 7)
 
+    print("max(h)", len(hist.hist) * hist.bin_size)
     print("initial f(h):", f(hist))
     print("initial g(h):", g(hist))
     print()
 
-    desired_f = 59
-    desired_g = 0.45
+    desired_f = 20
+    desired_g = 0.20
 
     scale, offset = double_finder(hist, desired_f, f, desired_g, g)
 
     print("desired f:", desired_f)
     print("desired g:", desired_g)
+    print()
+
+    print("scale", scale)
+    print("offset", offset)
+    print()
 
     fs = hist.stretch_into(scale).shift_into(offset)
 
