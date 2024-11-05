@@ -68,8 +68,10 @@ def single_finder_stretch(hist, desired, f):
 
     return scale
 
-def double_finder(hist, desired_f, f, desired_g, g):
+def double_finder_scipy(hist, desired_f, f, desired_g, g):
     def error_function(m, b):
+        m = float(m)
+        b = float(b)
         trans = hist.stretch_into(m).shift_into(b)
 
         error1 = (f(trans) - desired_f) / desired_f
@@ -80,12 +82,46 @@ def double_finder(hist, desired_f, f, desired_g, g):
     init_m=f(hist) / desired_f
     init_b=(g(hist) - desired_g) * init_m
 
+    result = optimize.minimize(
+            lambda params: error_function(params[0], params[1]),
+            x0=[init_m, init_b],
+            method='nelder-mead',
+            bounds=[(1e-6, None), (None,None)]
+    )
+
+    return result.x
+
+def double_finder(hist, desired_f, f, desired_g, g):
+    def error_function(m, b):
+        m = float(m)
+        b = float(b)
+
+        trans_stretch = hist.stretch_into(m)
+        trans = trans_stretch.shift_into(b)
+
+        stretch_count = sum(v for v in trans_stretch.hist)
+        trans_count = sum(v for v in trans.hist)
+
+        error1 = (f(trans) - desired_f) / desired_f
+        error2 = (g(trans) - desired_g) / desired_g
+
+        lost_data = (stretch_count - trans_count) / stretch_count
+
+        if lost_data < 0: 
+            lost_data = 0
+
+        return (2 * abs(error1)) + abs(error2) + (4 * lost_data)
+
+    init_m=f(hist) / desired_f
+    init_b=(g(hist) - desired_g) * init_m
+
     return custom_optimizer(
         error_function,
         initial_m=init_m,
         initial_b=init_b,
         step_size=5,
-        search_width=20
+        search_width=10,
+        max_iters=200
     )
 
 def custom_optimizer(
@@ -106,7 +142,7 @@ def custom_optimizer(
         # Calculate error with current m and b
         current_error = calculate_error(m, b)
 
-        # print(best_m, best_b, best_error, step_size)
+        print(best_m, best_b, best_error, step_size)
         
         # Check if current error is the best we've seen
         if current_error < best_error:
@@ -117,13 +153,13 @@ def custom_optimizer(
             step_size *= 0.95
 
         # Try adjusting 'm' and 'b' in both positive and negative directions
-        steps = [i * step_size for i in range(-search_width, search_width + 1)]
-        for delta_m in steps:
-            if delta_m == 0:
+        steps = [i * step_size for i in range(-search_width, search_width + 1)][:-1]
+        for delta_b in steps:
+            if delta_b == 0:
                 continue
 
-            for delta_b in steps:
-                if delta_b == 0:
+            for delta_m in steps:
+                if delta_m == 0:
                     continue
                 # Calculate new potential values for m and b
                 new_m, new_b = m + delta_m, b + delta_b
@@ -208,36 +244,38 @@ if __name__ == '__main__':
     f = lambda h : weighted_mean_value(h, 1)
     g = lambda h : percent_below_value(h, 10)
 
-    data = {}
-    for i in range(2,9):
-        datum = {}
+    datum = {}
 
-        desired_f = 9 * i
-        desired_g = 0.20 - 0.03 * i
+    desired_f = 40
+    desired_g = 0.14
 
-        scale, offset = double_finder(hist, desired_f, f, desired_g, g)
+    scale, offset = double_finder(hist, desired_f, f, desired_g, g)
 
-        datum["desired f:"] = desired_f
-        datum["desired g:"] = desired_g
+    datum["desired f:"] = desired_f
+    datum["desired g:"] = desired_g
 
-        datum["scale"] = scale
-        datum["offset"] = offset
+    datum["scale"] = scale
+    datum["offset"] = offset
 
-        fs = hist.stretch_into(scale).shift_into(offset)
+    fs = hist.stretch_into(scale).shift_into(offset)
 
-        datum["modified f: "] = f(fs)
-        datum["modified g: "] = g(fs)
+    datum["modified f: "] = f(fs)
+    datum["modified g: "] = g(fs)
 
-        rs = Histogram.from_measurements([(scale * v) + offset for v in m])
+    rs = Histogram.from_measurements([(scale * v) + offset for v in m])
 
-        datum["real f: "] = f(rs)
-        datum["real g: "] = g(rs)
-
-        data[i] = datum
-
+    datum["real f: "] = f(rs)
+    datum["real g: "] = g(rs)
 
     print()
 
+    hist.print()
+
+    print()
+
+    fs.print()
+
+    print()
 
     print("max(h)", len(hist.hist) * hist.bin_size)
     print("initial f(h):", f(hist))
@@ -245,5 +283,5 @@ if __name__ == '__main__':
 
     print()
 
-    pprint(data)
+    pprint(datum)
 
