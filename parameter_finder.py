@@ -100,7 +100,7 @@ def double_finder(hist, desired_f, f, desired_g, g):
         stretch_count = sum(v for v in trans_stretch.hist)
         trans_count = sum(v for v in trans.hist)
 
-        error1 = 2 * abs((f(trans) - desired_f) / desired_f)
+        error1 = 3 * abs((f(trans) - desired_f) / desired_f)
         error2 = abs((g(trans) - desired_g) / desired_g)
 
         lost_data = 10 * ((orig_count - trans_count) / orig_count)
@@ -108,8 +108,6 @@ def double_finder(hist, desired_f, f, desired_g, g):
         if lost_data < 0: 
             lost_data = 0
 
-        print(">", error1, error2, lost_data)
-        
         return error1 + error2 + lost_data
 
     init_m=f(hist) / desired_f
@@ -254,7 +252,7 @@ if __name__ == '__main__':
 
     hist = make_test_hist_from_data()
 
-    f = lambda h : weighted_mean_value(h, 1)
+    f = lambda h : weighted_mean_value(h, 2)
     g = lambda h : percent_below_value(h, 12)
 
     datum = {}
