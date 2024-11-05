@@ -92,25 +92,25 @@ def double_finder_scipy(hist, desired_f, f, desired_g, g):
     return result.x
 
 def double_finder(hist, desired_f, f, desired_g, g):
+    orig_count = sum(v for v in hist.hist)
     def error_function(m, b):
-        m = float(m)
-        b = float(b)
-
         trans_stretch = hist.stretch_into(m)
         trans = trans_stretch.shift_into(b)
 
         stretch_count = sum(v for v in trans_stretch.hist)
         trans_count = sum(v for v in trans.hist)
 
-        error1 = (f(trans) - desired_f) / desired_f
-        error2 = (g(trans) - desired_g) / desired_g
+        error1 = 2 * abs((f(trans) - desired_f) / desired_f)
+        error2 = abs((g(trans) - desired_g) / desired_g)
 
-        lost_data = (stretch_count - trans_count) / stretch_count
+        lost_data = 10 * ((orig_count - trans_count) / orig_count)
 
         if lost_data < 0: 
             lost_data = 0
 
-        return (2 * abs(error1)) + abs(error2) + (5 * lost_data)
+        print(">", error1, error2, lost_data)
+        
+        return error1 + error2 + lost_data
 
     init_m=f(hist) / desired_f
     init_b=(g(hist) - desired_g) * init_m
@@ -120,7 +120,7 @@ def double_finder(hist, desired_f, f, desired_g, g):
         initial_m=init_m,
         initial_b=init_b,
         step_size=5,
-        search_width=10,
+        search_width=20,
         max_iters=300
     )
 
@@ -142,15 +142,16 @@ def custom_optimizer(
         # Calculate error with current m and b
         current_error = calculate_error(m, b)
 
-        # print(best_m, best_b, best_error, step_size)
+        print(iteration)
+        print(best_m, best_b, best_error, step_size)
         
         # Check if current error is the best we've seen
         if current_error < best_error:
             best_error = current_error
             best_m, best_b = m, b
         else:
-            # weight temp the same as energy
-            t_max = best_error
+            # weight temp the based on energy
+            t_max = 2 * best_error
             t = t_max * (1 - (iteration / max_iters))
 
             energy = current_error - best_error
@@ -158,8 +159,8 @@ def custom_optimizer(
             p = (energy + t) / (best_error + t_max)
             r = random()
 
-            # print(">", p, r)
-            # print()
+            print(">", p, r)
+            print()
 
             if p >= r:
                 best_error = current_error
@@ -168,13 +169,10 @@ def custom_optimizer(
             step_size *= 0.95
 
         # Try adjusting 'm' and 'b' in both positive and negative directions
-        steps = [i * step_size for i in range(-search_width, search_width + 1)][:-1]
+        steps = [i * step_size for i in range(-search_width, search_width + 1)][::-1]
         for delta_b in steps:
-            if delta_b == 0:
-                continue
-
             for delta_m in steps:
-                if delta_m == 0:
+                if delta_m == delta_b == 0:
                     continue
                 # Calculate new potential values for m and b
                 new_m, new_b = m + delta_m, b + delta_b
@@ -254,10 +252,10 @@ def percent_below_value(hist, val):
 
 if __name__ == '__main__':
 
-    hist, m = make_test_hist_random(100, 100)
+    hist = make_test_hist_from_data()
 
     f = lambda h : weighted_mean_value(h, 1)
-    g = lambda h : percent_below_value(h, 10)
+    g = lambda h : percent_below_value(h, 12)
 
     datum = {}
 
@@ -277,18 +275,13 @@ if __name__ == '__main__':
     datum["modified f: "] = f(fs)
     datum["modified g: "] = g(fs)
 
-    rs = Histogram.from_measurements([(scale * v) + offset for v in m])
+    print()
 
-    datum["real f: "] = f(rs)
-    datum["real g: "] = g(rs)
+    hist.print(100_000_000)
 
     print()
 
-    hist.print()
-
-    print()
-
-    fs.print()
+    fs.print(100_000_000)
 
     print()
 
