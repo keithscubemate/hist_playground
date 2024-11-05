@@ -19,6 +19,8 @@ class Histogram:
         hist.hist = [0] * (int(max(measurements) / bin_size) + 1)
 
         for v in measurements:
+            if v < 0:
+                continue
             hist.hist[int(v / bin_size)] += 1
 
         return hist
@@ -57,10 +59,13 @@ class Histogram:
         self.hist = self.stretch_into(scale).hist
 
     def shift_into(self, offset):
-        new_h = [0] * (len(self.hist) + int(offset) + 1)
+        new_h = [0] * (len(self.hist) + abs(int(offset)) + 1)
 
         for i, val in enumerate(self.hist):
             i_0 = i + offset
+
+            if i_0 < 0:
+                continue
 
             dist = self.__calc_distribution_array(i_0, 1)
 

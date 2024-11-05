@@ -77,14 +77,23 @@ def double_finder(hist, desired_f, f, desired_g, g):
 
         return abs(error1) + abs(error2)
 
+    init_m=f(hist) / desired_f
+    init_b=(g(hist) - desired_g) * init_m
 
-    return custom_optimizer(error_function)
+    return custom_optimizer(
+        error_function,
+        initial_m=init_m,
+        initial_b=init_b,
+        step_size=5,
+        search_width=20
+    )
 
 def custom_optimizer(
         calculate_error,
         initial_m=1,
         initial_b=0,
-        step_size=0.1,
+        step_size=1,
+        search_width=1,
         max_iters=100
     ):
     # Initialize coefficients and other parameters
@@ -96,6 +105,8 @@ def custom_optimizer(
     for iteration in range(max_iters):
         # Calculate error with current m and b
         current_error = calculate_error(m, b)
+
+        # print(best_m, best_b, best_error, step_size)
         
         # Check if current error is the best we've seen
         if current_error < best_error:
@@ -103,13 +114,23 @@ def custom_optimizer(
             best_m, best_b = m, b
         else:
             # If no improvement, stop adjusting (or try smaller step size)
-            step_size /= 2  # Reduce step size if error doesn't improve
+            step_size *= 0.95
 
         # Try adjusting 'm' and 'b' in both positive and negative directions
-        for delta_m in [-step_size, step_size]:
-            for delta_b in [-step_size, step_size]:
+        steps = [i * step_size for i in range(-search_width, search_width + 1)]
+        for delta_m in steps:
+            if delta_m == 0:
+                continue
+
+            for delta_b in steps:
+                if delta_b == 0:
+                    continue
                 # Calculate new potential values for m and b
-                new_m, new_b = m + delta_a, b + delta_b
+                new_m, new_b = m + delta_m, b + delta_b
+
+                if new_m <= 0:
+                    continue
+
                 new_error = calculate_error(new_m, new_b)
                 
                 # Update m and b if new error is better
@@ -120,10 +141,6 @@ def custom_optimizer(
         # Optional: Stop if error is below m certain threshold
         if best_error < 1e-6:
             break
-
-    print(step_size)
-    print(best_error)
-    print()
     
     return best_m, best_b
     
@@ -167,51 +184,66 @@ def test_single_parameter():
     print("scaled: ", f(hist.stretch_into(scale)))
 
 def weighted_mean_value(hist, w = 1):
-    return sum(v * (( i * w ) + (w / 2)) for i, v in enumerate(hist.hist)) / sum(v for v in hist.hist)
+    weighted_sum = sum(v * (( i * w ) + (w / 2)) for i, v in enumerate(hist.hist))
+    total = sum(v for v in hist.hist)
+
+    if total == 0:
+        return 0
+
+    return weighted_sum / total 
 
 def percent_below_value(hist, val):
-    return \
-        sum(v for i, v in enumerate(hist.hist) if i * hist.bin_size < val) \
-        / \
-        sum(v for v in hist.hist)
+    below_count = sum(v for i, v in enumerate(hist.hist) if i * hist.bin_size < val)
+    total = sum(v for v in hist.hist)
 
+    if total == 0:
+        return 0
+
+    return below_count / total
 
 if __name__ == '__main__':
 
-    hist, m = make_test_hist_random(10000, 1000, 300)
+    hist, m = make_test_hist_random(100, 100)
 
-    f = lambda h : weighted_mean_value(h, 2)
-    g = lambda h : percent_below_value(h, 150)
+    f = lambda h : weighted_mean_value(h, 1)
+    g = lambda h : percent_below_value(h, 10)
+
+    data = {}
+    for i in range(2,9):
+        datum = {}
+
+        desired_f = 9 * i
+        desired_g = 0.20 - 0.03 * i
+
+        scale, offset = double_finder(hist, desired_f, f, desired_g, g)
+
+        datum["desired f:"] = desired_f
+        datum["desired g:"] = desired_g
+
+        datum["scale"] = scale
+        datum["offset"] = offset
+
+        fs = hist.stretch_into(scale).shift_into(offset)
+
+        datum["modified f: "] = f(fs)
+        datum["modified g: "] = g(fs)
+
+        rs = Histogram.from_measurements([(scale * v) + offset for v in m])
+
+        datum["real f: "] = f(rs)
+        datum["real g: "] = g(rs)
+
+        data[i] = datum
+
+
+    print()
+
 
     print("max(h)", len(hist.hist) * hist.bin_size)
-    print()
-
     print("initial f(h):", f(hist))
     print("initial g(h):", g(hist))
+
     print()
 
-    desired_f = 800
-    desired_g = 0.10
-
-    scale, offset = double_finder(hist, desired_f, f, desired_g, g)
-
-    print("desired f:", desired_f)
-    print("desired g:", desired_g)
-    print()
-
-    print("scale", scale)
-    print("offset", offset)
-    print()
-
-    fs = hist.stretch_into(scale).shift_into(offset)
-
-    print("modified f: ", f(fs))
-    print("modified g: ", g(fs))
-    print()
-
-    rs = Histogram.from_measurements([(scale * v) + offset for v in m])
-
-    print("modified f: ", f(rs))
-    print("modified g: ", g(rs))
-
+    pprint(data)
 
