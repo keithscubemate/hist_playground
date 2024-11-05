@@ -82,42 +82,42 @@ def double_finder(hist, desired_f, f, desired_g, g):
 
 def custom_optimizer(
         calculate_error,
-        initial_a=1,
+        initial_m=1,
         initial_b=0,
-        step_size=0.5,
+        step_size=0.1,
         max_iters=100
     ):
     # Initialize coefficients and other parameters
-    a, b = initial_a, initial_b
+    m, b = initial_m, initial_b
     best_error = float('inf')
-    best_a, best_b = a, b
+    best_m, best_b = m, b
     
     # Optimization loop
     for iteration in range(max_iters):
-        # Calculate error with current a and b
-        current_error = calculate_error(a, b)
+        # Calculate error with current m and b
+        current_error = calculate_error(m, b)
         
         # Check if current error is the best we've seen
         if current_error < best_error:
             best_error = current_error
-            best_a, best_b = a, b
+            best_m, best_b = m, b
         else:
             # If no improvement, stop adjusting (or try smaller step size)
             step_size /= 2  # Reduce step size if error doesn't improve
 
-        # Try adjusting 'a' and 'b' in both positive and negative directions
-        for delta_a in [-step_size, step_size]:
+        # Try adjusting 'm' and 'b' in both positive and negative directions
+        for delta_m in [-step_size, step_size]:
             for delta_b in [-step_size, step_size]:
-                # Calculate new potential values for a and b
-                new_a, new_b = a + delta_a, b + delta_b
-                new_error = calculate_error(new_a, new_b)
+                # Calculate new potential values for m and b
+                new_m, new_b = m + delta_a, b + delta_b
+                new_error = calculate_error(new_m, new_b)
                 
-                # Update a and b if new error is better
+                # Update m and b if new error is better
                 if new_error < current_error:
-                    a, b = new_a, new_b
+                    m, b = new_m, new_b
                     current_error = new_error
 
-        # Optional: Stop if error is below a certain threshold
+        # Optional: Stop if error is below m certain threshold
         if best_error < 1e-6:
             break
 
@@ -125,7 +125,7 @@ def custom_optimizer(
     print(best_error)
     print()
     
-    return best_a, best_b
+    return best_m, best_b
     
 
 def make_test_hist_from_data():
@@ -137,11 +137,14 @@ def make_test_hist_from_data():
 
     return Histogram.from_array(a_int)
 
-def make_test_hist_random(n, max_val):
-    # Check that the scaling and stretching is accurate to reality
+def make_test_hist_random(n, max_count, desired_mean = None):
+    if desired_mean is None:
+        desired_mean = n / 2
+
     m = []
     for i in range(n):
-        for j in range(int(max_val * random())):
+        weight = 1 - ((abs(desired_mean - i)) / desired_mean)
+        for j in range(int(max_count * (0.5 + 0.5 * random()) * weight)):
             m.append(i + (1 * random()))
 
     return Histogram.from_measurements(m), m
@@ -175,18 +178,20 @@ def percent_below_value(hist, val):
 
 if __name__ == '__main__':
 
-    hist = make_test_hist_from_data()
+    hist, m = make_test_hist_random(10000, 1000, 300)
 
-    f = lambda h : weighted_mean_value(h, 1)
-    g = lambda h : percent_below_value(h, 7)
+    f = lambda h : weighted_mean_value(h, 2)
+    g = lambda h : percent_below_value(h, 150)
 
     print("max(h)", len(hist.hist) * hist.bin_size)
+    print()
+
     print("initial f(h):", f(hist))
     print("initial g(h):", g(hist))
     print()
 
-    desired_f = 20
-    desired_g = 0.20
+    desired_f = 800
+    desired_g = 0.10
 
     scale, offset = double_finder(hist, desired_f, f, desired_g, g)
 
@@ -202,3 +207,11 @@ if __name__ == '__main__':
 
     print("modified f: ", f(fs))
     print("modified g: ", g(fs))
+    print()
+
+    rs = Histogram.from_measurements([(scale * v) + offset for v in m])
+
+    print("modified f: ", f(rs))
+    print("modified g: ", g(rs))
+
+
