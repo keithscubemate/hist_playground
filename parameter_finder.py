@@ -92,18 +92,20 @@ def double_finder_scipy(hist, desired_f, f, desired_g, g):
     return result.x
 
 def double_finder(hist, desired_f, f, desired_g, g):
-    orig_count = sum(v for v in hist.hist)
-    def error_function(m, b):
-        trans_stretch = hist.stretch_into(m)
-        trans = trans_stretch.shift_into(b)
 
-        stretch_count = sum(v for v in trans_stretch.hist)
+    orig_count = sum(v for v in hist.hist)
+
+    def error_function(m, b):
+        trans = hist.stretch_into(m).shift_into(b)
+
+        trans.hist = trans.hist[:32]
+
         trans_count = sum(v for v in trans.hist)
 
-        error1 = 3 * abs((f(trans) - desired_f) / desired_f)
-        error2 = abs((g(trans) - desired_g) / desired_g)
+        error1 = 4 * abs((f(trans) - desired_f) / desired_f)
+        error2 = 4 * abs((g(trans) - desired_g) / desired_g)
 
-        lost_data = 10 * ((orig_count - trans_count) / orig_count)
+        lost_data = ((orig_count - trans_count) / orig_count)
 
         if lost_data < 0: 
             lost_data = 0
@@ -117,9 +119,7 @@ def double_finder(hist, desired_f, f, desired_g, g):
         error_function,
         initial_m=init_m,
         initial_b=init_b,
-        step_size=5,
-        search_width=20,
-        max_iters=300
+        search_width=10,
     )
 
 def custom_optimizer(
@@ -199,7 +199,7 @@ def make_test_hist_from_data():
 
     a_int = bytes_to_arr(a, 4) 
 
-    return Histogram.from_array(a_int)
+    return Histogram.from_array(a_int, 2)
 
 def make_test_hist_random(n, max_count, desired_mean = None):
     if desired_mean is None:
@@ -230,7 +230,8 @@ def test_single_parameter():
     print("desired:", desired)
     print("scaled: ", f(hist.stretch_into(scale)))
 
-def weighted_mean_value(hist, w = 1):
+def weighted_mean_value(hist):
+    w = hist.bin_size
     weighted_sum = sum(v * (( i * w ) + (w / 2)) for i, v in enumerate(hist.hist))
     total = sum(v for v in hist.hist)
 
@@ -252,13 +253,13 @@ if __name__ == '__main__':
 
     hist = make_test_hist_from_data()
 
-    f = lambda h : weighted_mean_value(h, 2)
-    g = lambda h : percent_below_value(h, 12)
+    f = lambda h : weighted_mean_value(h)
+    g = lambda h : percent_below_value(h, 12.5)
 
     datum = {}
 
-    desired_f = 30
-    desired_g = 0.14
+    desired_f = 31
+    desired_g = 0.20
 
     scale, offset = double_finder(hist, desired_f, f, desired_g, g)
 

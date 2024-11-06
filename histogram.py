@@ -34,7 +34,7 @@ class Histogram:
 
     def mean(self):
         h = self.hist
-        return sum(i * v  * self.bin_size for i, v in enumerate(h)) / sum([v for v in h])
+        return sum(i * v * self.bin_size for i, v in enumerate(h)) / sum([v for v in h])
 
     def mutate(self, scale, offset):
         self.stretch(scale)
