@@ -78,12 +78,12 @@ def double_finder(hist, desired_f, f, desired_g, g):
 
         trans_count = sum(v for v in trans.hist)
 
-        error1 = 3 * abs((f(trans) - desired_f) / desired_f)
-        error2 = 3 * abs((g(trans) - desired_g) / desired_g)
+        error1 = 5 * abs((f(trans) - desired_f) / desired_f)
+        error2 = 5 * abs((g(trans) - desired_g) / desired_g)
 
         lost_data = abs((orig_count - trans_count) / orig_count)
 
-        return error1 + error2 + lost_data
+        return error1 + error2 + lost_data + abs(m / 100) + abs(b / 100)
 
     init_m=f(hist) / desired_f
     init_b=(g(hist) - desired_g) * init_m
@@ -92,7 +92,9 @@ def double_finder(hist, desired_f, f, desired_g, g):
         error_function,
         initial_m=init_m,
         initial_b=init_b,
+        step_size=2,
         search_width=10,
+        max_iters=200
     )
 
 def custom_optimizer(
@@ -200,27 +202,7 @@ def test_single_parameter():
     print("desired:", desired)
     print("scaled: ", f(hist.stretch_into(scale)))
 
-def weighted_mean_value(hist):
-    w = hist.bin_size
-    weighted_sum = sum(v * (( i * w ) + (w / 2)) for i, v in enumerate(hist.hist))
-    total = sum(v for v in hist.hist)
-
-    if total == 0:
-        return 0
-
-    return weighted_sum / total 
-
-def percent_below_value(hist, val):
-    below_count = sum(v for i, v in enumerate(hist.hist) if i * hist.bin_size < val)
-    total = sum(v for v in hist.hist)
-
-    if total == 0:
-        return 0
-
-    return below_count / total
-
-if __name__ == '__main__':
-
+def test_double_parameter():
     current_time_seconds = time.time()
     seed(current_time_seconds)
 
@@ -231,8 +213,8 @@ if __name__ == '__main__':
 
     datum = {}
 
-    desired_f = 31
-    desired_g = 0.20
+    desired_f = 33
+    desired_g = 0.18
 
     scale, offset = double_finder(hist, desired_f, f, desired_g, g)
 
@@ -265,3 +247,53 @@ if __name__ == '__main__':
 
     pprint(datum)
 
+
+
+def test_basic_optimizer():
+    f = lambda x: (3.51 * (x ** 2)) - (10.29 * x) + 3
+
+    def err(x0, x1):
+
+        y0 = f(x0)
+        y1 = f(x1)
+
+        return abs(y0) + abs(y1) + (1 /(100 ** abs(x0 - x1)))
+
+    x, y = custom_optimizer(
+        err,
+        initial_m=0.5,
+        initial_b=2.5,
+        step_size=0.1,
+        max_iters=300
+    )
+
+    print()
+    print(x, y)
+    print(f(x))
+    print(f(y))
+
+
+
+def weighted_mean_value(hist):
+    w = hist.bin_size
+    weighted_sum = sum(v * (( i * w ) + (w / 2)) for i, v in enumerate(hist.hist))
+    total = sum(v for v in hist.hist)
+
+    if total == 0:
+        return 0
+
+    return weighted_sum / total 
+
+def percent_below_value(hist, val):
+    below_count = sum(v for i, v in enumerate(hist.hist) if i * hist.bin_size < val)
+    total = sum(v for v in hist.hist)
+
+    if total == 0:
+        return 0
+
+    return below_count / total
+
+if __name__ == '__main__':
+    test_basic_optimizer()
+    # test_single_parameter():
+    # test_double_parameter():
