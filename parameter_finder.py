@@ -78,13 +78,10 @@ def double_finder(hist, desired_f, f, desired_g, g):
 
         trans_count = sum(v for v in trans.hist)
 
-        error1 = 4 * abs((f(trans) - desired_f) / desired_f)
-        error2 = 4 * abs((g(trans) - desired_g) / desired_g)
+        error1 = 3 * abs((f(trans) - desired_f) / desired_f)
+        error2 = 3 * abs((g(trans) - desired_g) / desired_g)
 
-        lost_data = ((orig_count - trans_count) / orig_count)
-
-        if lost_data < 0: 
-            lost_data = 0
+        lost_data = abs((orig_count - trans_count) / orig_count)
 
         return error1 + error2 + lost_data
 
@@ -161,8 +158,7 @@ def custom_optimizer(
                     m, b = new_m, new_b
                     current_error = new_error
 
-        # Optional: Stop if error is below m certain threshold
-        if best_error < 1e-6:
+        if abs(step_size) < 1e-6 or best_error < 1e-6:
             break
     
     return best_m, best_b
@@ -190,8 +186,6 @@ def make_test_hist_random(n, max_count, desired_mean = None):
     return Histogram.from_measurements(m), m
 
 def test_single_parameter():
-    current_time_seconds = 0 # time.time()
-    seed(current_time_seconds)
 
     hist = make_test_hist_from_data()
     desired = 59
@@ -226,6 +220,9 @@ def percent_below_value(hist, val):
     return below_count / total
 
 if __name__ == '__main__':
+
+    current_time_seconds = time.time()
+    seed(current_time_seconds)
 
     hist = make_test_hist_from_data()
 
