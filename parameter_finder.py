@@ -2,7 +2,6 @@ import base64
 import time
 from random import random, seed
 from pprint import pprint
-from scipy import optimize
 
 from histogram import Histogram, bytes_to_arr
 
@@ -67,29 +66,6 @@ def single_finder_stretch(hist, desired, f):
     # print()
 
     return scale
-
-def double_finder_scipy(hist, desired_f, f, desired_g, g):
-    def error_function(m, b):
-        m = float(m)
-        b = float(b)
-        trans = hist.stretch_into(m).shift_into(b)
-
-        error1 = (f(trans) - desired_f) / desired_f
-        error2 = (g(trans) - desired_g) / desired_g
-
-        return abs(error1) + abs(error2)
-
-    init_m=f(hist) / desired_f
-    init_b=(g(hist) - desired_g) * init_m
-
-    result = optimize.minimize(
-            lambda params: error_function(params[0], params[1]),
-            x0=[init_m, init_b],
-            method='nelder-mead',
-            bounds=[(1e-6, None), (None,None)]
-    )
-
-    return result.x
 
 def double_finder(hist, desired_f, f, desired_g, g):
 
