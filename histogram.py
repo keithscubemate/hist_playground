@@ -1,8 +1,9 @@
+import sys
 import base64
 from random import random 
    
 def bytes_to_arr(arr, so):
-    return [int.from_bytes((j:=i*so, arr[j:j+so])[1]) for i in range(len(arr)//so)]
+    return [int.from_bytes((j:=i*so, arr[j:j+so][::-1])[1]) for i in range(len(arr)//so)]
 
 class Histogram:
     def __init__(self, bin_size):
@@ -34,7 +35,8 @@ class Histogram:
 
     def mean(self):
         h = self.hist
-        return sum(i * v * self.bin_size for i, v in enumerate(h)) / sum([v for v in h])
+        tot = sum([v for v in h])
+        return sum(i * v * self.bin_size / tot for i, v in enumerate(h)) 
 
     def mutate(self, scale, offset):
         self.stretch(scale)
@@ -102,30 +104,28 @@ class Histogram:
         return [v / k for v in rv]
 
 if __name__ == '__main__':
-
-    hist = Histogram.from_array([ 10 * x for x in [0, 1, 1, 2, 3, 4, 2, 2, 1, 0]])
-
-    hist.print()
-
-    hist.shift(1.5)
-
-    print()
-    hist.print()
-
-    exit
-
-    s = "AAAAAAAAAAAMAAAAYgAAAKEAAACYAAAAhQAAAHoAAACPAAAAeAAAAGcAAABrAAAAcwAAAGoAAABLAAAAXwAAAEQAAABPAAAAXgAAAEsAAABRAAAARQAAAEgAAABPAAAAUQAAAEEAAABIAAAARwAAAEMAAABHAAAANgAAADUAAAA="
+    s = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAEAAAABAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
     a = base64.b64decode(s)
 
+    a_b = bytes_to_arr(a, 1) 
+    print(a_b)
+
     a_int = bytes_to_arr(a, 4) 
 
-    hist = Histogram.from_array(a_int)
+    hist = Histogram.from_array(a_int, 1)
 
     hm = hist.mean()
 
+    psfc = sum(v for i, v in enumerate(hist.hist) if i <= int(12.5 / 1) - 1) / sum(v for v in hist.hist)
+
+    print(len(hist.hist))
+    print(hist.hist)
     print(hm)
+    print(psfc * 100)
     print()
+
+    sys.exit()
 
     # Test shifting on a range
     for i in range(1, 10):
