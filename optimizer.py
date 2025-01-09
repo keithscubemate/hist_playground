@@ -18,7 +18,9 @@ def custom_optimizer(
         initial,
         step_size=1,
         search_width=1,
-        max_iters=100
+        max_iters=100,
+        min_err=1e-6,
+        min_step=1e-6
     ):
     # Initialize coefficients and other parameters
     params = initial
@@ -26,7 +28,7 @@ def custom_optimizer(
     best_params = params
 
     # pregenerate our delta arrays
-    steps = [i * step_size for i in range(-search_width, search_width + 1)][::-1]
+    steps = [i * step_size for i in range(-search_width, search_width + 1)]
     ps = PowerSet(len(params), len(steps))
     deltas = [
         (
@@ -61,7 +63,7 @@ def custom_optimizer(
                 params = new_params
                 current_error = new_error
 
-        if abs(step_size) < 1e-6 or best_error < 1e-6:
+        if abs(step_size) < min_step or best_error < min_err:
             break
     
     return best_params
@@ -75,8 +77,6 @@ def test_basic_optimizer():
     res = custom_optimizer(
         err,
         initial=[3, 1, -10],
-        step_size=0.1,
-        search_width=1,
         max_iters=1000
     )
 
