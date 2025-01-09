@@ -1,3 +1,4 @@
+from datetime import datetime
 from random import random, seed
 from power_set import PowerSet
 
@@ -13,7 +14,7 @@ def sim_anneal(iteration, max_iters, best_error, current_error):
 
     return p >= r
 
-def custom_optimizer(
+def optimize(
         calculate_error,
         initial,
         step_size=1,
@@ -40,7 +41,6 @@ def custom_optimizer(
     
     # Optimization loop
     for iteration in range(max_iters):
-        # Calculate error with current m and b
         current_error = calculate_error(params)
 
         # Check if current error is the best we've seen
@@ -69,15 +69,15 @@ def custom_optimizer(
     return best_params
     
 def test_basic_optimizer():
-    f = lambda x: (x - 3.14) * (x - 1.5) * (x + 10.6897)
+    f = lambda x: (x - 3.14) * (x - 1.5) * (x + 10.6897) * (x + 5)
 
     def err(arr):
         return sum((abs(f(x)) for x in arr))
 
-    res = custom_optimizer(
+    res = optimize(
         err,
-        initial=[3, 1, -10],
-        max_iters=1000
+        initial=[3, 1, -10, 5],
+        step_size=0.1
     )
 
     print(err(res))
@@ -85,4 +85,5 @@ def test_basic_optimizer():
 
 
 if __name__ == '__main__':
+    seed(datetime.now().timestamp())
     test_basic_optimizer()

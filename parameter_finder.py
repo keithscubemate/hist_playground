@@ -4,7 +4,7 @@ from random import random, seed
 from pprint import pprint
 
 from histogram import Histogram, bytes_to_arr
-from optimizer import custom_optimizer
+from optimizer import optimize
 
 def single_finder_shift(hist, desired, f):
     actual = f(hist)
@@ -15,47 +15,31 @@ def single_finder_shift(hist, desired, f):
 def single_finder_stretch(hist, desired, f):
     actual = f(hist)
 
+    orig_count = sum(v for v in hist.hist)
     scale = (desired / actual)
-    guesses = []
 
-    i = 0
-    new_actual = 0
-    for i in range(10):
-        new_hist = hist.stretch_into(scale)
-        new_actual = f(new_hist)
+    def error_function(arr):
+        m = arr[0]
 
-        if abs(desired - new_actual) < 0.1:
-            break
+        if m < 0:
+            return float('inf')
 
-        guesses.append((scale, desired - new_actual))
+        trans = hist.stretch_into(m)
 
-        h = None
-        if len(hs := [g for g in guesses if g[1] > 0]) > 0:
-            h = min(hs, key=lambda g: g[1])
+        trans.hist = trans.hist[:32]
 
-        l = None
-        if len(ls := [g for g in guesses if g[1] < 0]) > 0:
-            l = max(ls, key=lambda g: g[1])
+        trans_count = sum(v for v in trans.hist)
 
-        if h is None or l is None:
-            scale += (desired / new_actual) - 1
-        else:
-            # print(h, l)
-            h = h[0]
-            l = l[0]
+        error1 = abs((f(trans) - desired) / desired)
 
-            scale = (h + l) / 2
+        lost_data = abs((orig_count - trans_count) / orig_count)
 
-            if scale in [g[0] for g in guesses]:
-                n_h = hist.stretch_into(scale)
-                n_a = f(new_hist)
+        return error1 + lost_data
 
-                if desired - n_a > 0:
-                    scale = (l + scale) / 2
-                else:
-                    scale = (h + scale) / 2
-
-    return scale
+    return optimize(
+        error_function,
+        [scale]
+    )
 
 def double_finder(hist, desired_f, f, desired_g, g):
 
@@ -83,12 +67,9 @@ def double_finder(hist, desired_f, f, desired_g, g):
     init_m=f(hist) / desired_f
     init_b=(g(hist) - desired_g) * init_m
 
-    return custom_optimizer(
+    return optimize(
         error_function,
-        [init_m, init_b],
-        step_size=2,
-        search_width=10,
-        max_iters=200
+        [init_m, init_b]
     )
 
 def make_test_hist_from_data():
@@ -111,21 +92,6 @@ def make_test_hist_random(n, max_count, desired_mean = None):
             m.append(i + (1 * random()))
 
     return Histogram.from_measurements(m), m
-
-def test_single_parameter():
-
-    hist = make_test_hist_from_data()
-    desired = 59
-
-    f = lambda h : weighted_mean_value(h)
-
-    print("initial:", f(hist))
-    print()
-
-    scale = single_finder_stretch(hist, desired, f)
-
-    print("desired:", desired)
-    print("scaled: ", f(hist.stretch_into(scale)))
 
 def test_double_parameter():
     current_time_seconds = time.time()
@@ -150,17 +116,10 @@ def test_double_parameter():
     datum["offset"] = offset
 
     fs = hist.stretch_into(scale).shift_into(offset)
+    fs.hist = fs.hist[:32]
 
     datum["modified f: "] = f(fs)
     datum["modified g: "] = g(fs)
-
-    print()
-
-    hist.print(100_000)
-
-    print()
-
-    fs.print(100_000)
 
     print()
 
@@ -171,6 +130,25 @@ def test_double_parameter():
     print()
 
     pprint(datum)
+
+def test_single_parameter():
+
+    hist = make_test_hist_from_data()
+    desired = 32
+
+    f = lambda h : weighted_mean_value(h)
+
+    print("max(h)", len(hist.hist) * hist.bin_size)
+    print("initial:", f(hist))
+    print()
+
+    scale = single_finder_stretch(hist, desired, f)[0]
+
+    fs = hist.stretch_into(scale)
+    fs.hist = fs.hist[:32]
+
+    print("desired:", desired)
+    print("scaled: ", f(fs))
 
 def weighted_mean_value(hist):
     w = hist.bin_size
@@ -192,5 +170,8 @@ def percent_below_value(hist, val):
     return below_count / total
 
 if __name__ == '__main__':
-    # test_single_parameter()
+    print("# Single:")
+    test_single_parameter()
+    print()
+    print("# Double:")
     test_double_parameter()
