@@ -4,6 +4,7 @@ from random import random, seed
 from pprint import pprint
 
 from histogram import Histogram, bytes_to_arr
+from optimizer import custom_optimizer
 
 def single_finder_shift(hist, desired, f):
     actual = f(hist)
@@ -97,75 +98,6 @@ def double_finder(hist, desired_f, f, desired_g, g):
         max_iters=200
     )
 
-def custom_optimizer(
-        calculate_error,
-        initial_m=1,
-        initial_b=0,
-        step_size=1,
-        search_width=1,
-        max_iters=100
-    ):
-    # Initialize coefficients and other parameters
-    m, b = initial_m, initial_b
-    best_error = float('inf')
-    best_m, best_b = m, b
-    
-    # Optimization loop
-    for iteration in range(max_iters):
-        # Calculate error with current m and b
-        current_error = calculate_error(m, b)
-
-        print(iteration)
-        print(best_m, best_b, best_error, step_size)
-        
-        # Check if current error is the best we've seen
-        if current_error < best_error:
-            best_error = current_error
-            best_m, best_b = m, b
-        else:
-            # weight temp the based on energy
-            t_max = 2 * best_error
-            t = t_max * (1 - (iteration / max_iters))
-
-            energy = current_error - best_error
-
-            p = (energy + t) / (best_error + t_max)
-            r = random()
-
-            print(">", p, r)
-            print()
-
-            if p >= r:
-                best_error = current_error
-                best_m, best_b = m, b
-
-            step_size *= 0.95
-
-        # Try adjusting 'm' and 'b' in both positive and negative directions
-        steps = [i * step_size for i in range(-search_width, search_width + 1)][::-1]
-        for delta_b in steps:
-            for delta_m in steps:
-                if delta_m == delta_b == 0:
-                    continue
-                # Calculate new potential values for m and b
-                new_m, new_b = m + delta_m, b + delta_b
-
-                if new_m <= 0:
-                    continue
-
-                new_error = calculate_error(new_m, new_b)
-                
-                # Update m and b if new error is better
-                if new_error < current_error:
-                    m, b = new_m, new_b
-                    current_error = new_error
-
-        if abs(step_size) < 1e-6 or best_error < 1e-6:
-            break
-    
-    return best_m, best_b
-    
-
 def make_test_hist_from_data():
     s = "AAAAAAAAAAAMAAAAYgAAAKEAAACYAAAAhQAAAHoAAACPAAAAeAAAAGcAAABrAAAAcwAAAGoAAABLAAAAXwAAAEQAAABPAAAAXgAAAEsAAABRAAAARQAAAEgAAABPAAAAUQAAAEEAAABIAAAARwAAAEMAAABHAAAANgAAADUAAAA="
 
@@ -192,7 +124,7 @@ def test_single_parameter():
     hist = make_test_hist_from_data()
     desired = 59
 
-    f = lambda h : weighted_mean_value(h, 1)
+    f = lambda h : weighted_mean_value(h)
 
     print("initial:", f(hist))
     print()
@@ -247,33 +179,6 @@ def test_double_parameter():
 
     pprint(datum)
 
-
-
-def test_basic_optimizer():
-    f = lambda x: (3.51 * (x ** 2)) - (10.29 * x) + 3
-
-    def err(x0, x1):
-
-        y0 = f(x0)
-        y1 = f(x1)
-
-        return abs(y0) + abs(y1) + (1 /(100 ** abs(x0 - x1)))
-
-    x, y = custom_optimizer(
-        err,
-        initial_m=0.5,
-        initial_b=2.5,
-        step_size=0.1,
-        max_iters=300
-    )
-
-    print()
-    print(x, y)
-    print(f(x))
-    print(f(y))
-
-
-
 def weighted_mean_value(hist):
     w = hist.bin_size
     weighted_sum = sum(v * (( i * w ) + (w / 2)) for i, v in enumerate(hist.hist))
@@ -294,6 +199,5 @@ def percent_below_value(hist, val):
     return below_count / total
 
 if __name__ == '__main__':
-    test_basic_optimizer()
-    # test_single_parameter():
-    # test_double_parameter():
+    # test_single_parameter()
+    test_double_parameter()
