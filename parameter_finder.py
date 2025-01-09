@@ -52,19 +52,8 @@ def single_finder_stretch(hist, desired, f):
 
                 if desired - n_a > 0:
                     scale = (l + scale) / 2
-                    # print("go low")
                 else:
                     scale = (h + scale) / 2
-                    # print("go high")
-
-        # print(scale,desired, new_actual)
-        # print()
-
-    # print(i, scale, actual, new_actual)
-
-    # for g in guesses:
-    #     print(g)
-    # print()
 
     return scale
 
@@ -72,27 +61,31 @@ def double_finder(hist, desired_f, f, desired_g, g):
 
     orig_count = sum(v for v in hist.hist)
 
-    def error_function(m, b):
+    def error_function(arr):
+        m = arr[0]
+        b = arr[1]
+        if m < 0:
+            return float('inf')
+
         trans = hist.stretch_into(m).shift_into(b)
 
         trans.hist = trans.hist[:32]
 
         trans_count = sum(v for v in trans.hist)
 
-        error1 = 5 * abs((f(trans) - desired_f) / desired_f)
-        error2 = 5 * abs((g(trans) - desired_g) / desired_g)
+        error1 = abs((f(trans) - desired_f) / desired_f)
+        error2 = abs((g(trans) - desired_g) / desired_g)
 
         lost_data = abs((orig_count - trans_count) / orig_count)
 
-        return error1 + error2 + lost_data + abs(m / 100) + abs(b / 100)
+        return error1 + error2 + lost_data
 
     init_m=f(hist) / desired_f
     init_b=(g(hist) - desired_g) * init_m
 
     return custom_optimizer(
         error_function,
-        initial_m=init_m,
-        initial_b=init_b,
+        [init_m, init_b],
         step_size=2,
         search_width=10,
         max_iters=200
@@ -145,7 +138,7 @@ def test_double_parameter():
 
     datum = {}
 
-    desired_f = 33
+    desired_f = 32
     desired_g = 0.18
 
     scale, offset = double_finder(hist, desired_f, f, desired_g, g)
@@ -163,11 +156,11 @@ def test_double_parameter():
 
     print()
 
-    hist.print(100_000_000)
+    hist.print(100_000)
 
     print()
 
-    fs.print(100_000_000)
+    fs.print(100_000)
 
     print()
 
