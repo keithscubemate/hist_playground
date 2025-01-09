@@ -1,7 +1,7 @@
 from random import random, seed
 from power_set import PowerSet
 
-def sim_anneal(iteration, max_iters):
+def sim_anneal(iteration, max_iters, best_error, current_error):
     # weight temp the based on energy
     t_max = 2 * best_error
     t = t_max * (1 - (iteration / max_iters))
@@ -27,7 +27,7 @@ def custom_optimizer(
 
     # pregenerate our delta arrays
     steps = [i * step_size for i in range(-search_width, search_width + 1)][::-1]
-    ps = PowerSet(2, len(steps))
+    ps = PowerSet(len(params), len(steps))
     deltas = [
         (
             [steps[ps.set[idx]] for idx in range(len(params))],
@@ -45,12 +45,14 @@ def custom_optimizer(
         print(params, best_error, step_size)
         
         # Check if current error is the best we've seen
-        if current_error < best_error or sim_anneal(iteration, max_iters):
+        if current_error < best_error:
             best_error = current_error
             best_params = params
-
-            if current_error >= best_error:
-                step_size *= 0.95
+        else:
+            if sim_anneal(iteration, max_iters, best_error, current_error):
+                best_error = current_error
+                best_params = params
+            step_size *= 0.95
 
         for delta in deltas:
 
@@ -70,30 +72,28 @@ def custom_optimizer(
     return best_params
     
 def test_basic_optimizer():
-    f = lambda x: (x - 3) * (x - 1)
+    f = lambda x: (x - 3.14) * (x - 1.5) * (x + 10.6897)
 
     def err(arr):
-        x0 = arr[0]
-        x1 = arr[1]
-        y0 = f(x0)
-        y1 = f(x1)
-
-        return abs(y0) + abs(y1)
+        return sum((abs(f(x)) for x in arr))
 
     res = custom_optimizer(
         err,
-        initial=[0, 10],
-        step_size=0.5,
+        initial=[3, 1, -10],
+        step_size=0.1,
+        search_width=1,
         max_iters=1000
     )
     x = res[0]
     y = res[1]
+    z = res[2]
 
     print()
-    print(res)
-    print(x, y)
+    print(res, err(res))
+    print(x, y, z)
     print(f(x))
     print(f(y))
+    print(f(z))
 
 
 if __name__ == '__main__':
