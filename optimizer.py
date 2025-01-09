@@ -41,9 +41,6 @@ def custom_optimizer(
         # Calculate error with current m and b
         current_error = calculate_error(params)
 
-        print(iteration)
-        print(params, best_error, step_size)
-        
         # Check if current error is the best we've seen
         if current_error < best_error:
             best_error = current_error
@@ -55,9 +52,7 @@ def custom_optimizer(
             step_size *= 0.95
 
         for delta in deltas:
-
-
-            new_params = [params[i] + delta[i] for i in range(len(params))]
+            new_params = [params[i] + (delta[i] * step_size) for i in range(len(params))]
 
             new_error = calculate_error(new_params)
             
@@ -84,16 +79,9 @@ def test_basic_optimizer():
         search_width=1,
         max_iters=1000
     )
-    x = res[0]
-    y = res[1]
-    z = res[2]
 
-    print()
-    print(res, err(res))
-    print(x, y, z)
-    print(f(x))
-    print(f(y))
-    print(f(z))
+    print(err(res))
+    [print(i, x,f(x)) for i, x in enumerate(res)]
 
 
 if __name__ == '__main__':
