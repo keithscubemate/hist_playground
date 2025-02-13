@@ -67,6 +67,7 @@ class Histogram:
             i_0 = i + offset
 
             if i_0 < 0:
+                new_h[0] += val
                 continue
 
             dist = self.__calc_distribution_array(i_0, 1)
@@ -104,16 +105,23 @@ class Histogram:
         return [v / k for v in rv]
 
 if __name__ == '__main__':
-    s = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAEAAAABAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    s = "FAAAAEkAAABYAAAATwAAAFkAAABDAAAASwAAAD8AAABAAAAAMwAAADQAAAA9AAAAPgAAAEMAAAA0AAAARwAAAEYAAABMAAAARgAAAE4AAABMAAAAUgAAAGAAAABTAAAAdAAAAFkAAABSAAAAZQAAAF8AAABzAAAAVQAAAEEAAABRAAAASQAAAEcAAAA9AAAAOwAAADcAAAAyAAAAGgAAACYAAAAMAAAACwAAAAoAAAAJAAAACwAAAAIAAAAEAAAAAgAAAAIAAAACAAAAAQAAAAIAAAABAAAAAQAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
     a = base64.b64decode(s)
 
-    a_b = bytes_to_arr(a, 1) 
-    print(a_b)
-
-    a_int = bytes_to_arr(a, 4) 
-
+    a_int = bytes_to_arr(a, 4)[:60]
     hist = Histogram.from_array(a_int, 1)
+
+    print(hist.mean(), "<--- original mean")
+    print(hist.hist)
+
+    hist.shift(-5)
+    print(hist.hist)
+
+    print(hist.mean(), "<--- shift mean")
+
+    sys.exit()
+
 
     hm = hist.mean()
 
@@ -125,7 +133,6 @@ if __name__ == '__main__':
     print(psfc * 100)
     print()
 
-    sys.exit()
 
     # Test shifting on a range
     for i in range(1, 10):
