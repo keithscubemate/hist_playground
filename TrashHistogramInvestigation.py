@@ -22,18 +22,14 @@ async def _():
 
 @app.cell
 def _(json):
-    data = ""
+    data = {}
     with open("./pretty_trash.json", 'r', encoding='utf-16') as fin:
         _file_data = fin.read()
         data = json.loads(_file_data)
+    
+    for _d in data:
+        _d["Comment"] = _d["ft"][0]["Comment"]
     return data, fin
-
-
-@app.cell
-def _(data):
-    for d in data:
-        d["Comment"] = d["ft"][0]["Comment"]
-    return (d,)
 
 
 @app.cell
@@ -110,7 +106,7 @@ def _(last_continuous_zero, new_data):
             "real_m": real_m,
             "real_b": real_b
         }
-    
+
         avg_by_comment[comm] = result
     return (
         avg,
@@ -146,6 +142,30 @@ def _(samples):
 
 
 @app.cell
+def _(mo, new_data):
+    slider = mo.ui.slider(start=0, stop=len(new_data) - 1, value=0)
+    return (slider,)
+
+
+@app.cell
+def _(alt, mo, new_data, pd, slider):
+    _data = new_data[slider.value]["TrashHistogram"].hist
+
+    _frame_data = pd.DataFrame({'bin': range(len(_data)), 'numbers': _data})
+
+    hist_chart =  alt.Chart(_frame_data).mark_bar().encode(
+        alt.X('bin:O', title='Bin (Index)'),
+        alt.Y('numbers:Q', title='Height')
+    )
+
+    mo.vstack([
+        mo.hstack([slider, mo.md(f"Has value: {slider.value}")]),
+        hist_chart
+    ])
+    return (hist_chart,)
+
+
+@app.cell
 def _(alt, data, mo, samples):
     ids = list(set(_d["testid"] for _d in data))
 
@@ -158,11 +178,6 @@ def _(alt, data, mo, samples):
         color='Comment'
     ))
     return chart, ids, max_id, min_id
-
-
-@app.cell
-def _():
-    return
 
 
 @app.cell
