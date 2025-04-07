@@ -13,11 +13,12 @@ def _():
 @app.cell
 async def _():
     import pandas as pd
+    import numpy as np
     import micropip
     import json
     await micropip.install('altair')
     import altair as alt
-    return alt, json, micropip, pd
+    return alt, json, micropip, np, pd
 
 
 @app.cell
@@ -63,12 +64,6 @@ def _(data):
         last_continuous_zero,
         new_data,
     )
-
-
-@app.cell
-def _(new_data):
-    new_data
-    return
 
 
 @app.cell
@@ -143,8 +138,11 @@ def _(samples):
 
 @app.cell
 def _(mo, new_data):
+    data_len = len(new_data[0]["TrashHistogram"].hist)
+
     slider = mo.ui.slider(start=0, stop=len(new_data) - 1, value=0)
-    return (slider,)
+    bin_range_slider = mo.ui.slider(start=1, stop=data_len - 1, value=1)
+    return bin_range_slider, data_len, slider
 
 
 @app.cell
