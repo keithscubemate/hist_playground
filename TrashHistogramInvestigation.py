@@ -22,12 +22,77 @@ async def _():
 
 
 @app.cell
+def _(mo):
+    mo.md("# Sort algs")
+    return
+
+
+@app.cell
+def _():
+    import random
+
+    _ar=random.sample(range(100),20)
+
+    def merge(l, r):
+        rv = []
+        li = 0
+        ri = 0
+
+        while li < len(l) and ri < len(r):
+            lval = l[li]
+            rval = r[ri]
+
+            if lval < rval:
+                rv.append(lval)
+                li += 1
+            else:
+                rv.append(rval)
+                ri += 1
+
+        for val in r[ri:]:
+            rv.append(val)
+        for val in l[li:]:
+            rv.append(val)
+
+        return rv
+
+
+    def merge_sort(arr):
+        if len(arr) == 1:
+            return arr
+
+        half_len = len(arr) // 2
+        left = merge_sort(arr[half_len:])
+        right = merge_sort(arr[:half_len])
+
+        return merge(left, right)
+
+    def quick_sort(arr):
+        if len(arr) <= 1:
+            return arr
+
+        left = [v for v in arr if v < arr[0]]
+        right = [v for v in arr if v > arr[0]]
+
+        return quick_sort(left) + [arr[0]] + quick_sort(right)
+
+    quick_sort(_ar)
+    return merge, merge_sort, quick_sort, random
+
+
+@app.cell
+def _(mo):
+    mo.md("# Data import and process")
+    return
+
+
+@app.cell
 def _(json):
     data = {}
     with open("./pretty_trash.json", 'r', encoding='utf-16') as fin:
         _file_data = fin.read()
         data = json.loads(_file_data)
-    
+
     for _d in data:
         _d["Comment"] = _d["ft"][0]["Comment"]
     return data, fin
@@ -64,6 +129,12 @@ def _(data):
         last_continuous_zero,
         new_data,
     )
+
+
+@app.cell
+def _(mo):
+    mo.md("# avergage by comment")
+    return
 
 
 @app.cell
@@ -125,14 +196,20 @@ def _(avg_by_comment):
 
 
 @app.cell
+def _(mo):
+    mo.md("""# graphs""")
+    return
+
+
+@app.cell
 def _(new_data, pd):
     samples = pd.DataFrame(new_data)
     return (samples,)
 
 
 @app.cell
-def _(samples):
-    samples
+def _(mo):
+    mo.md("""## histogram""")
     return
 
 
@@ -164,6 +241,12 @@ def _(alt, mo, new_data, pd, slider):
 
 
 @app.cell
+def _(mo):
+    mo.md("""## cool graph""")
+    return
+
+
+@app.cell
 def _(alt, data, mo, samples):
     ids = list(set(_d["testid"] for _d in data))
 
@@ -181,6 +264,26 @@ def _(alt, data, mo, samples):
 @app.cell
 def _(chart):
     chart
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
     return
 
 
