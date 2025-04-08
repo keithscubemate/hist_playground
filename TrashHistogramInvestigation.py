@@ -23,7 +23,7 @@ async def _():
 
 @app.cell
 def _(mo):
-    mo.md("# Sort algs")
+    mo.md("""# Sort algs""")
     return
 
 
@@ -82,7 +82,7 @@ def _():
 
 @app.cell
 def _(mo):
-    mo.md("# Data import and process")
+    mo.md("""# Data import and process""")
     return
 
 
@@ -133,7 +133,7 @@ def _(data):
 
 @app.cell
 def _(mo):
-    mo.md("# avergage by comment")
+    mo.md("""# avergage by comment""")
     return
 
 
@@ -225,6 +225,7 @@ def _(mo, new_data):
 @app.cell
 def _(alt, mo, new_data, pd, slider):
     _data = new_data[slider.value]["TrashHistogram"].hist
+    _comment = new_data[slider.value]["Comment"]
 
     _frame_data = pd.DataFrame({'bin': range(len(_data)), 'numbers': _data})
 
@@ -235,6 +236,7 @@ def _(alt, mo, new_data, pd, slider):
 
     mo.vstack([
         mo.hstack([slider, mo.md(f"Has value: {slider.value}")]),
+        _comment,
         hist_chart
     ])
     return (hist_chart,)
@@ -264,26 +266,6 @@ def _(alt, data, mo, samples):
 @app.cell
 def _(chart):
     chart
-    return
-
-
-@app.cell
-def _():
-    return
-
-
-@app.cell
-def _():
-    return
-
-
-@app.cell
-def _():
-    return
-
-
-@app.cell
-def _():
     return
 
 
