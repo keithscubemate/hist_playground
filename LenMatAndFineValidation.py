@@ -50,12 +50,12 @@ def _(original_data):
         _a_int = bytes_to_arr(_arr, 4)[:width]
         _hist = Histogram.from_array(_a_int, bin_size)
         return _hist
-    
+
 
     for _d in original_data:
         _new_d = {}
         _other_d = {}
-    
+
         # grab data to persist
         if (comm := _d["Comment"]) == "":
             _new_d["Comment"] = "no align"
@@ -114,7 +114,6 @@ def _(original_data, pd, processed_data):
 
     max_id = max(_ids) + 1
     min_id = min(_ids) - 1
-
     return max_id, min_id, samples
 
 
@@ -196,7 +195,7 @@ def _(fine_chart, mo):
 
 @app.cell
 def _(mo):
-    mo.md("## Histogram Viewer")
+    mo.md("""## Histogram Viewer""")
     return
 
 
